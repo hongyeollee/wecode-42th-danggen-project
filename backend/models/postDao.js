@@ -236,10 +236,11 @@ const getLikeStatus = async (userId, postId) => {
 };
 
 const getPosts = async (postId, keyword) => {
-  const queryBuilder = new QueryBuilder(postId, keyword);
-  const query = queryBuilder.buildQuery();
+  const queryBuilder = new QueryBuilder(postId, keyword); // QueryBuilder 클래스의 인스턴스 생성
+  const query = queryBuilder.buildQuery(); // buildQuery 메소드를 호출하여 쿼리문 생성
 
   return await appDataSource.query(
+    // appDataSource에서 쿼리 실행
     `
     SELECT
       post.id,
@@ -271,7 +272,36 @@ const getPosts = async (postId, keyword) => {
     `
   );
 };
-
+// getposts querybuilder 설명내용
+/*
+SELECT
+      post.id,
+      JSON_ARRAYAGG( // JSON_ARRAYAGG 함수를 사용하여 JSON 배열 생성
+        JSON_OBJECT( // JSON_OBJECT 함수를 사용하여 JSON 객체 생성
+          "id", post.id,
+          "userId", post.user_id,
+          "nickname", user.nickname,
+          "profileImageUrl", user.profile_image_url,
+          "title", post.title,
+          "price", post.price,
+          "description", post.description,
+          "category", category.name,
+          "hidden", post.hidden,
+          "location", post.location,
+          "viewCount", post.view_count,
+          "createdTime", post.created_at,
+          "pullupTime", post.pullup_time,
+          "imageUrl", image.image_url,
+          "likes", (SELECT COUNT(likes.id) FROM likes WHERE likes.post_id=post.id) // 하위 쿼리를 사용하여 좋아요 수 구하기
+        )
+      ) as postInfo // 생성된 JSON 배열을 postInfo라는 이름으로 반환
+    FROM posts post // posts 테이블에서 데이터 가져오기
+    INNER JOIN categories category ON category.id=post.category_id // categories 테이블과 조인하여 카테고리 정보 가져오기
+    INNER JOIN post_images image ON image.post_id=post.id // post_images 테이블과 조인하여 이미지 정보 가져오기
+    INNER JOIN users user ON user.id=post.user_id // users 테이블과 조인하여 사용자 정보 가져오기
+    ${query} // 생성된 쿼리문 적용
+    GROUP BY post.id; // post.id로 그룹화하여 반환
+*/
 const getPostViewsByPostId = async (postId) => {
   return await appDataSource.query(
     `
